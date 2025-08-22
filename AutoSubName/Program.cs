@@ -1,6 +1,5 @@
-﻿using AutoSubName.RenameSubs.Data;
-using AutoSubName.RenameSubs.Features;
-using Mediator;
+﻿using AutoSubName.Commands;
+using AutoSubName.RenameSubs.Data;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AutoSubName;
@@ -30,18 +29,9 @@ public static class Program
     /// </summary>
     /// <param name="args"></param>
     /// <returns></returns>
-    public static async Task Main(string[] args)
+    static Task<int> Main(string[] args)
     {
-        // Create the service collection
-        var services = CreateAppService();
-
-        // Build the service provider
-        var provider = services.BuildServiceProvider();
-
-        // Start the application
-        using var scope = provider.CreateScope();
-
-        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-        await mediator.Send(new RenameSubtitles.DirectCall.Command() { FolderPath = "" });
+        var services = CreateAppService().BuildServiceProvider();
+        return AppCommand.Create(services).Parse(args).InvokeAsync();
     }
 }

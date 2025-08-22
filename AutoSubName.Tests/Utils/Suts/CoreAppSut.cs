@@ -18,7 +18,7 @@ public class CoreAppSut(TestResourceManager manager) : ISut, IAsyncLifetime
 
     protected virtual void ConfigureServices(IServiceCollection s) { }
 
-    public async ValueTask InitializeAsync()
+    public virtual async ValueTask InitializeAsync()
     {
         // Services
         var services = Program.CreateAppService();
@@ -35,7 +35,7 @@ public class CoreAppSut(TestResourceManager manager) : ISut, IAsyncLifetime
         Directory.CreateDirectory(RootFileDirectory);
     }
 
-    public async ValueTask DisposeAsync()
+    public virtual async ValueTask DisposeAsync()
     {
         GC.SuppressFinalize(this);
         await Services.DisposeAsync();
