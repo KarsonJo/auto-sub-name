@@ -20,7 +20,15 @@ public static class AppCommand
             Description = "The directory to scan for subtitles. Defaults to the current directory.",
             Required = false,
         };
+
+        Option<bool> shallowOption = new("--shallow", ["-s"])
+        {
+            Description = "Disable recursive directory scanning.",
+            Required = false,
+        };
+
         rootCommand.Options.Add(dirOption);
+        rootCommand.Options.Add(shallowOption);
 
         rootCommand.SetAction(
             async (parseResult, ct) =>
@@ -30,11 +38,17 @@ public static class AppCommand
                     dir = Directory.GetCurrentDirectory();
                 }
 
+                var shallow = parseResult.GetValue(shallowOption);
+
                 // Start the application
                 using var scope = provider.CreateScope();
 
                 var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-                var command = new RenameSubtitles.DirectCall.Command() { FolderPath = dir };
+                var command = new RenameSubtitles.DirectCall.Command()
+                {
+                    FolderPath = dir,
+                    Recursive = !shallow,
+                };
                 await mediator.Send(command, ct);
             }
         );

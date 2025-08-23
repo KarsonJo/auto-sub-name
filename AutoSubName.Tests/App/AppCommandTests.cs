@@ -61,9 +61,72 @@ public class AppCommandTests : StandaloneSetup<CoreAppSut>
         result.ExitCode.ShouldBe(0);
         result.Error.ShouldBeEmpty();
 
-        // Assert
         Sut.FileExists(video).ShouldBeTrue();
         Sut.FileExists(subtitle).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task InvokeCommand_WhenEnableRecursive_ShouldRenameSubtitlesInSubDirectories(
+        bool useDefault
+    )
+    {
+        // Arrange
+        var subPath = Path.Combine(Sut.RootFileDirectory, "sub");
+        Directory.CreateDirectory(subPath);
+
+        // Arrange
+        var episode = "S01E01";
+        var videoName = $"{NewGuid()} {episode}";
+        var video = await Sut.CreateVideoFileAsync(fileName: videoName, basePath: subPath);
+        var subtitle = await Sut.CreateSubtitleFileAsync(
+            fileName: $"{NewGuid()} {episode}",
+            basePath: subPath
+        );
+
+        // Act
+        List<string> args = ["--dir", Sut.RootFileDirectory];
+        if (!useDefault)
+        {
+            args.AddRange(["--shallow", "false"]);
+        }
+        var result = await Sut.ExecuteAppCommandAsync([.. args]);
+
+        // Assert
+        result.ExitCode.ShouldBe(0);
+        result.Error.ShouldBeEmpty();
+
+        Sut.FileExists(video, basePath: subPath).ShouldBeTrue();
+        Sut.FileExists(subtitle, basePath: subPath).ShouldBeFalse();
+        Sut.FileExists($"{videoName}.srt", basePath: subPath).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task InvokeCommand_WhenDisableRecursive_ShouldNotRenameSubtitlesInSubDirectories()
+    {
+        // Arrange
+        var subPath = Path.Combine(Sut.RootFileDirectory, "sub");
+        Directory.CreateDirectory(subPath);
+
+        var episode = "S01E01";
+        var videoName = $"{NewGuid()} {episode}";
+        var video = await Sut.CreateVideoFileAsync(fileName: videoName, basePath: subPath);
+        var subtitle = await Sut.CreateSubtitleFileAsync(
+            fileName: $"{NewGuid()} {episode}",
+            basePath: subPath
+        );
+
+        // Act
+        List<string> args = ["--dir", Sut.RootFileDirectory, "--shallow"];
+        var result = await Sut.ExecuteAppCommandAsync(args);
+
+        // Assert
+        result.ExitCode.ShouldBe(0);
+        result.Error.ShouldBeEmpty();
+
+        Sut.FileExists(video, basePath: subPath).ShouldBeTrue();
+        Sut.FileExists(subtitle, basePath: subPath).ShouldBeTrue();
     }
 }
 
@@ -71,7 +134,15 @@ public static class AppCommandTestExtensions
 {
     public record Result(int ExitCode, string Output, string Error);
 
-    public static async Task<Result> ExecuteAppCommandAsync(this ISut sut, params string[] args)
+    public static Task<Result> ExecuteAppCommandAsync(this ISut sut, params string[] args)
+    {
+        return sut.ExecuteAppCommandAsync((IReadOnlyList<string>)args);
+    }
+
+    public static async Task<Result> ExecuteAppCommandAsync(
+        this ISut sut,
+        IReadOnlyList<string> args
+    )
     {
         var output = new StringWriter();
         var error = new StringWriter();

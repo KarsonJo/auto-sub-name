@@ -11,6 +11,7 @@ public static class RenameSubtitles
         public class Command : IRequest
         {
             public string FolderPath { get; set; } = null!;
+            public bool Recursive { get; set; }
         }
 
         public class Handler(
@@ -23,13 +24,35 @@ public static class RenameSubtitles
                 CancellationToken cancellationToken
             )
             {
-                var folder = await repository.GetAsync(request.FolderPath, cancellationToken);
-
-                folder.RenameSubs(languageDetector);
-
-                await repository.SaveChangesAsync(cancellationToken);
+                if (request.Recursive)
+                {
+                    await Traverse(request.FolderPath);
+                }
+                else
+                {
+                    await RenameSubsInTopDirectory(request.FolderPath);
+                }
 
                 return default;
+
+                async Task RenameSubsInTopDirectory(string path)
+                {
+                    var folder = await repository.GetAsync(path, cancellationToken);
+
+                    folder.RenameSubs(languageDetector);
+
+                    await repository.SaveChangesAsync(cancellationToken);
+                }
+
+                async Task Traverse(string path)
+                {
+                    await RenameSubsInTopDirectory(path);
+
+                    foreach (var dir in Directory.GetDirectories(path))
+                    {
+                        await Traverse(dir);
+                    }
+                }
             }
         }
     }
