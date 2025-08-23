@@ -1,4 +1,5 @@
 ﻿using AutoSubName.RenameSubs.Data;
+using AutoSubName.RenameSubs.Services;
 using Mediator;
 
 namespace AutoSubName.RenameSubs.Features;
@@ -12,7 +13,10 @@ public static class RenameSubtitles
             public string FolderPath { get; set; } = null!;
         }
 
-        public class Handler(IMediaFolderRepository repository) : IRequestHandler<Command>
+        public class Handler(
+            IMediaFolderRepository repository,
+            ISubtitleLanguageDetector languageDetector
+        ) : IRequestHandler<Command>
         {
             public async ValueTask<Unit> Handle(
                 Command request,
@@ -21,7 +25,7 @@ public static class RenameSubtitles
             {
                 var folder = await repository.GetAsync(request.FolderPath, cancellationToken);
 
-                folder.RenameSubs();
+                folder.RenameSubs(languageDetector);
 
                 await repository.SaveChangesAsync(cancellationToken);
 

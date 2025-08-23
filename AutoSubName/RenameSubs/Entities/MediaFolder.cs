@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using AutoSubName.RenameSubs.Services;
 using SmartFormat;
 
 namespace AutoSubName.RenameSubs.Entities;
@@ -38,7 +39,10 @@ public partial class MediaFolder
         return new() { MediaFiles = mediaFiles };
     }
 
-    public void RenameSubs(string namingPattern = "{name}.{ext}")
+    public void RenameSubs(
+        ISubtitleLanguageDetector languageDetector,
+        string namingPattern = "{name}{lang:.{}|}{ext:.{}|}"
+    )
     {
         ValidateNamingPattern(namingPattern);
 
@@ -65,12 +69,14 @@ public partial class MediaFolder
                 continue;
             }
 
-            // TODO: Support multiple languages
+            var languageName = languageDetector.GetLanguage(subtitleFile.FullPath);
+
             var newName = Smart.Format(
                 namingPattern,
                 new
                 {
                     name = Path.GetFileNameWithoutExtension(matchedVideo.FileName),
+                    lang = languageName?.Name,
                     ext = subtitleFile.Extension,
                 }
             );
@@ -93,7 +99,7 @@ public partial class MediaFolder
 
     private static readonly HashSet<string> AllowedNamingParameters = ["name", "lang", "ext"];
 
-    [GeneratedRegex(@"\{(.+?)\}")]
+    [GeneratedRegex(@"\{([a-zA-Z0-9]+)(.*?)\}")]
     private static partial Regex NamingPatternParameter();
 
     private static string? ExtractEpisode(string fileName)

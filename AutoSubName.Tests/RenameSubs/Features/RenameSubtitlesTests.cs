@@ -98,5 +98,26 @@ public static class RenameSubtitlesTests
             Sut.FileExists($"{showName} {episode1}.srt").ShouldBeTrue();
             Sut.FileExists($"{showName} {episode2}.srt").ShouldBeTrue();
         }
+
+        [Fact]
+        public async Task RenameSubtitles_WhenSubtitleFileHasLanguageTag_ShouldRenameFilesWithLanguageTag()
+        {
+            // Arrange
+            var episode = "S01E01";
+            var videoName = $"{NewGuid()} {episode}";
+            var video = await Sut.CreateVideoFileAsync(fileName: videoName);
+            var subtitle = await Sut.CreateSubtitleFileAsync(
+                fileName: $"zh-Hans.{NewGuid()}.{episode}"
+            );
+
+            // Act
+            await Sut.Scoped<IMediator>()
+                .Call(x => x.Send(Sut.SeedRenameSubtitlesDirectCallCommand()));
+
+            // Assert
+            Sut.FileExists(video).ShouldBeTrue();
+            Sut.FileExists(subtitle).ShouldBeFalse();
+            Sut.FileExists($"{videoName}.zh-Hans.srt").ShouldBeTrue();
+        }
     }
 }
