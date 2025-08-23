@@ -34,7 +34,7 @@ public class AppCommandTests : StandaloneSetup<CoreAppSut>
         var result = await Sut.ExecuteAppCommandAsync("--dir", Sut.RootFileDirectory);
 
         // Assert
-        result.ExitCode.ShouldBe(0);
+        result.ExitCode.ShouldBe(0, result.Error);
         result.Error.ShouldBeEmpty();
 
         Sut.FileExists(video).ShouldBeTrue();
@@ -58,7 +58,7 @@ public class AppCommandTests : StandaloneSetup<CoreAppSut>
         var result = await Sut.ExecuteAppCommandAsync("--dir", directory);
 
         // Assert
-        result.ExitCode.ShouldBe(0);
+        result.ExitCode.ShouldBe(0, result.Error);
         result.Error.ShouldBeEmpty();
 
         Sut.FileExists(video).ShouldBeTrue();
@@ -94,7 +94,7 @@ public class AppCommandTests : StandaloneSetup<CoreAppSut>
         var result = await Sut.ExecuteAppCommandAsync([.. args]);
 
         // Assert
-        result.ExitCode.ShouldBe(0);
+        result.ExitCode.ShouldBe(0, result.Error);
         result.Error.ShouldBeEmpty();
 
         Sut.FileExists(video, basePath: subPath).ShouldBeTrue();
@@ -122,11 +122,33 @@ public class AppCommandTests : StandaloneSetup<CoreAppSut>
         var result = await Sut.ExecuteAppCommandAsync(args);
 
         // Assert
-        result.ExitCode.ShouldBe(0);
+        result.ExitCode.ShouldBe(0, result.Error);
         result.Error.ShouldBeEmpty();
 
         Sut.FileExists(video, basePath: subPath).ShouldBeTrue();
         Sut.FileExists(subtitle, basePath: subPath).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task InvokeCommand_WhenUseCustomNamingPattern_ShouldReturnToCustomFormat()
+    {
+        // Arrange
+        var episode = "S01E01";
+        var videoName = $"{NewGuid()} {episode}";
+        var video = await Sut.CreateVideoFileAsync(fileName: videoName);
+        var subtitle = await Sut.CreateSubtitleFileAsync(fileName: $"{NewGuid()} {episode}");
+
+        // Act
+        List<string> args = ["--dir", Sut.RootFileDirectory, "--pattern", "{name}.custom.{ext}"];
+        var result = await Sut.ExecuteAppCommandAsync(args);
+
+        // Assert
+        result.ExitCode.ShouldBe(0, result.Error);
+        result.Error.ShouldBeEmpty();
+
+        Sut.FileExists(video).ShouldBeTrue();
+        Sut.FileExists(subtitle).ShouldBeFalse();
+        Sut.FileExists($"{videoName}.custom.srt").ShouldBeTrue();
     }
 }
 

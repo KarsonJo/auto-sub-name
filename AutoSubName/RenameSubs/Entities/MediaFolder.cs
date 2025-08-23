@@ -39,10 +39,7 @@ public partial class MediaFolder
         return new() { MediaFiles = mediaFiles };
     }
 
-    public void RenameSubs(
-        ISubtitleLanguageDetector languageDetector,
-        string namingPattern = "{name}{lang:.{}|}{ext:.{}|}"
-    )
+    public void RenameSubs(string namingPattern, ISubtitleLanguageDetector languageDetector)
     {
         ValidateNamingPattern(namingPattern);
 
@@ -97,7 +94,7 @@ public partial class MediaFolder
         }
     }
 
-    private static readonly HashSet<string> AllowedNamingParameters = ["name", "lang", "ext"];
+    public static readonly HashSet<string> AllowedNamingParameters = ["name", "lang", "ext"];
 
     [GeneratedRegex(@"\{([a-zA-Z0-9]+)(.*?)\}")]
     private static partial Regex NamingPatternParameter();

@@ -27,8 +27,23 @@ public static class AppCommand
             Required = false,
         };
 
+        Option<string> namingPatternOption = new("--pattern", ["-p"])
+        {
+            Description = $"""
+                Use a custom naming pattern. Defaults to "{RenameSubtitles.DefaultNamingPattern}".
+                Possible variables: {string.Join(
+                    ", ",
+                    RenameSubtitles.PossibleVariables.Select(x => $"{{{x}}}")
+                )}.
+                The format follows axuno/SmartFormat interpolation syntax. 
+                See https://github.com/axuno/SmartFormat/wiki/How-Formatters-Work.
+                """,
+            Required = false,
+        };
+
         rootCommand.Options.Add(dirOption);
         rootCommand.Options.Add(shallowOption);
+        rootCommand.Options.Add(namingPatternOption);
 
         rootCommand.SetAction(
             async (parseResult, ct) =>
@@ -40,6 +55,8 @@ public static class AppCommand
 
                 var shallow = parseResult.GetValue(shallowOption);
 
+                var namingPattern = parseResult.GetValue(namingPatternOption);
+
                 // Start the application
                 using var scope = provider.CreateScope();
 
@@ -48,6 +65,7 @@ public static class AppCommand
                 {
                     FolderPath = dir,
                     Recursive = !shallow,
+                    CustomNamingPattern = namingPattern,
                 };
                 await mediator.Send(command, ct);
             }

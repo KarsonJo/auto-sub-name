@@ -1,4 +1,5 @@
 ﻿using AutoSubName.RenameSubs.Data;
+using AutoSubName.RenameSubs.Entities;
 using AutoSubName.RenameSubs.Services;
 using Mediator;
 
@@ -6,12 +7,16 @@ namespace AutoSubName.RenameSubs.Features;
 
 public static class RenameSubtitles
 {
+    public static readonly string DefaultNamingPattern = "{name}{lang:.{}|}.{ext}";
+    public static HashSet<string> PossibleVariables => MediaFolder.AllowedNamingParameters;
+
     public static class DirectCall
     {
         public class Command : IRequest
         {
             public string FolderPath { get; set; } = null!;
             public bool Recursive { get; set; }
+            public string? CustomNamingPattern { get; set; }
         }
 
         public class Handler(
@@ -39,7 +44,10 @@ public static class RenameSubtitles
                 {
                     var folder = await repository.GetAsync(path, cancellationToken);
 
-                    folder.RenameSubs(languageDetector);
+                    folder.RenameSubs(
+                        request.CustomNamingPattern ?? DefaultNamingPattern,
+                        languageDetector
+                    );
 
                     await repository.SaveChangesAsync(cancellationToken);
                 }
