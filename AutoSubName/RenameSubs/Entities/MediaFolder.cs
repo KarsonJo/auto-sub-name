@@ -41,7 +41,7 @@ public partial class MediaFolder
 
     public void RenameSubs(string namingPattern, ISubtitleLanguageDetector languageDetector)
     {
-        ValidateNamingPattern(namingPattern);
+        var usedParameters = GetUsedParameters(namingPattern);
 
         var subtitleFiles = MediaFiles.Where(x => x.Type == MediaType.Subtitle).ToHashSet();
 
@@ -66,7 +66,9 @@ public partial class MediaFolder
                 continue;
             }
 
-            var languageName = languageDetector.GetLanguage(subtitleFile.FullPath);
+            var languageName = usedParameters.Contains("lang")
+                ? languageDetector.GetLanguage(subtitleFile.FullPath)
+                : null;
 
             var newName = Smart.Format(
                 namingPattern,
@@ -82,8 +84,9 @@ public partial class MediaFolder
         }
     }
 
-    private static void ValidateNamingPattern(string namingPattern)
+    private static HashSet<string> GetUsedParameters(string namingPattern)
     {
+        HashSet<string> usedParameters = [];
         foreach (Match parameter in NamingPatternParameter().Matches(namingPattern))
         {
             var name = parameter.Groups[1].Value;
@@ -91,7 +94,9 @@ public partial class MediaFolder
             {
                 throw new UnsupportedNamingParameterException(name);
             }
+            usedParameters.Add(name);
         }
+        return usedParameters;
     }
 
     public static readonly HashSet<string> AllowedNamingParameters = ["name", "lang", "ext"];

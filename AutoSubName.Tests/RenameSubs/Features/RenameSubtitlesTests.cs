@@ -203,5 +203,53 @@ public static class RenameSubtitlesTests
                 .ShouldBeFalse();
             Sut.FileExists($"{showName} {episode2}.srt", basePath: subPath).ShouldBeTrue();
         }
+
+        [Fact]
+        public async Task RenameSubtitles_WhenUseCustomNamingPattern_ShouldRenameFilesWithCustomNamingPattern()
+        {
+            // Arrange
+            var episode = "S01E01";
+            var videoName = $"{NewGuid()} {episode}";
+            var video = await Sut.CreateVideoFileAsync(fileName: videoName);
+            var subtitle = await Sut.CreateSubtitleFileAsync(fileName: $"{NewGuid()} {episode}");
+
+            var command = Sut.SeedRenameSubtitlesDirectCallCommand(x =>
+            {
+                x.CustomNamingPattern = "{name}.custom.{ext}";
+            });
+
+            // Act
+            await Sut.Scoped<IMediator>().Call(x => x.Send(command));
+
+            // Assert
+            Sut.FileExists(video).ShouldBeTrue();
+            Sut.FileExists(subtitle).ShouldBeFalse();
+            Sut.FileExists($"{videoName}.custom.srt").ShouldBeTrue();
+        }
+
+        [Fact]
+        public async Task RenameSubtitles_WhenCustomNamingPatternDoesNotContainLanguageVariable_ShouldIgnoreLanguage()
+        {
+            // Arrange
+            var episode = "S01E01";
+            var videoName = $"{NewGuid()} {episode}";
+            var video = await Sut.CreateVideoFileAsync(fileName: videoName);
+            var subtitle = await Sut.CreateSubtitleFileAsync(
+                fileName: $"zh-Hans.{NewGuid()}.{episode}"
+            );
+
+            var command = Sut.SeedRenameSubtitlesDirectCallCommand(x =>
+            {
+                x.CustomNamingPattern = "{name}.{ext}";
+            });
+
+            // Act
+            await Sut.Scoped<IMediator>().Call(x => x.Send(command));
+
+            // Assert
+            Sut.FileExists(video).ShouldBeTrue();
+            Sut.FileExists(subtitle).ShouldBeFalse();
+            Sut.FileExists($"{videoName}.srt").ShouldBeTrue();
+        }
     }
 }
