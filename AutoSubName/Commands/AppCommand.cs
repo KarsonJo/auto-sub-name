@@ -1,4 +1,5 @@
 ﻿using System.CommandLine;
+using AutoSubName.RenameSubs.Entities;
 using AutoSubName.RenameSubs.Features;
 using Mediator;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,9 +42,28 @@ public static class AppCommand
             Required = false,
         };
 
+        Option<LanguageFormat> languageFormatOption = new(
+            "--language-format",
+            ["--lang-format", "-lf"]
+        )
+        {
+            DefaultValueFactory = _ => LanguageFormat.Ietf,
+            Description = $"""
+                The output language format.
+                {LanguageFormat.TwoLetter}: ISO 639-1 two-letter or ISO 639-3 three-letter code. e.g. "zh"
+                {LanguageFormat.ThreeLetter}: ISO 639-2 three-letter code. e.g. "zho"
+                {LanguageFormat.Ietf}: IETF BCP 47 language tag (RFC 4646). e.g. "zh-Hans"
+                {LanguageFormat.English}: language name in English.
+                {LanguageFormat.Native}: language name in the native language.
+                {LanguageFormat.Display}: language name in your system language.
+                """,
+            Required = false,
+        };
+
         rootCommand.Options.Add(dirOption);
         rootCommand.Options.Add(shallowOption);
         rootCommand.Options.Add(namingPatternOption);
+        rootCommand.Options.Add(languageFormatOption);
 
         rootCommand.SetAction(
             async (parseResult, ct) =>
@@ -53,10 +73,6 @@ public static class AppCommand
                     dir = Directory.GetCurrentDirectory();
                 }
 
-                var shallow = parseResult.GetValue(shallowOption);
-
-                var namingPattern = parseResult.GetValue(namingPatternOption);
-
                 // Start the application
                 using var scope = provider.CreateScope();
 
@@ -64,8 +80,9 @@ public static class AppCommand
                 var command = new RenameSubtitles.DirectCall.Command()
                 {
                     FolderPath = dir,
-                    Recursive = !shallow,
-                    CustomNamingPattern = namingPattern,
+                    Recursive = !parseResult.GetValue(shallowOption),
+                    CustomNamingPattern = parseResult.GetValue(namingPatternOption),
+                    LanguageFormat = parseResult.GetValue(languageFormatOption),
                 };
                 await mediator.Send(command, ct);
             }

@@ -12,6 +12,16 @@ public static class MediaFileExtensions
     // csharpier-ignore-end
 }
 
+public enum LanguageFormat
+{
+    TwoLetter,
+    ThreeLetter,
+    Ietf,
+    English,
+    Native,
+    Display,
+}
+
 public partial class MediaFolder
 {
     public virtual IList<MediaFile> MediaFiles { get; protected set; } = null!;
@@ -39,7 +49,11 @@ public partial class MediaFolder
         return new() { MediaFiles = mediaFiles };
     }
 
-    public void RenameSubs(string namingPattern, ISubtitleLanguageDetector languageDetector)
+    public void RenameSubs(
+        string namingPattern,
+        LanguageFormat? languageFormat,
+        ISubtitleLanguageDetector languageDetector
+    )
     {
         var usedParameters = GetUsedParameters(namingPattern);
 
@@ -75,7 +89,20 @@ public partial class MediaFolder
                 new
                 {
                     name = Path.GetFileNameWithoutExtension(matchedVideo.FileName),
-                    lang = languageName?.Name,
+                    lang = languageName is null
+                        ? null
+                        : languageFormat switch
+                        {
+                            LanguageFormat.TwoLetter => languageName.TwoLetterISOLanguageName,
+                            LanguageFormat.ThreeLetter => languageName.ThreeLetterISOLanguageName,
+                            LanguageFormat.Ietf => languageName.IetfLanguageTag,
+                            LanguageFormat.English => languageName.EnglishName,
+                            LanguageFormat.Native => languageName.NativeName,
+                            LanguageFormat.Display => languageName.DisplayName,
+                            _ => throw new InvalidOperationException(
+                                "Language format is required when using language parameter."
+                            ),
+                        },
                     ext = subtitleFile.Extension,
                 }
             );

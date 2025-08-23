@@ -130,7 +130,7 @@ public class AppCommandTests : StandaloneSetup<CoreAppSut>
     }
 
     [Fact]
-    public async Task InvokeCommand_WhenUseCustomNamingPattern_ShouldReturnToCustomFormat()
+    public async Task InvokeCommand_WhenUseCustomNamingPattern_ShouldRenameToCustomFormat()
     {
         // Arrange
         var episode = "S01E01";
@@ -149,6 +149,30 @@ public class AppCommandTests : StandaloneSetup<CoreAppSut>
         Sut.FileExists(video).ShouldBeTrue();
         Sut.FileExists(subtitle).ShouldBeFalse();
         Sut.FileExists($"{videoName}.custom.srt").ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task InvokeCommand_WhenSetLanguageFormat_ShouldRenameToLanguageFormat()
+    {
+        // Arrange
+        var episode = "S01E01";
+        var videoName = $"{NewGuid()} {episode}";
+        var video = await Sut.CreateVideoFileAsync(fileName: videoName);
+        var subtitle = await Sut.CreateSubtitleFileAsync(
+            fileName: $"zh-Hans.{NewGuid()}.{episode}"
+        );
+
+        // Act
+        List<string> args = ["--dir", Sut.RootFileDirectory, "--language-format", "TwoLetter"];
+        var result = await Sut.ExecuteAppCommandAsync(args);
+
+        // Assert
+        result.ExitCode.ShouldBe(0, result.Error);
+        result.Error.ShouldBeEmpty();
+
+        Sut.FileExists(video).ShouldBeTrue();
+        Sut.FileExists(subtitle).ShouldBeFalse();
+        Sut.FileExists($"{videoName}.zh.srt").ShouldBeTrue();
     }
 }
 

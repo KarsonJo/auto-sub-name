@@ -17,6 +17,7 @@ public static class RenameSubtitles
             public string FolderPath { get; set; } = null!;
             public bool Recursive { get; set; }
             public string? CustomNamingPattern { get; set; }
+            public LanguageFormat LanguageFormat { get; set; }
         }
 
         public class Handler(
@@ -46,6 +47,7 @@ public static class RenameSubtitles
 
                     folder.RenameSubs(
                         request.CustomNamingPattern ?? DefaultNamingPattern,
+                        request.LanguageFormat,
                         languageDetector
                     );
 

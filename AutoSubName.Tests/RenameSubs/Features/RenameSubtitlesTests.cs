@@ -1,4 +1,5 @@
-﻿using AutoSubName.Tests.RenameSubs.Utils;
+﻿using AutoSubName.RenameSubs.Entities;
+using AutoSubName.Tests.RenameSubs.Utils;
 using AutoSubName.Tests.Utils;
 using AutoSubName.Tests.Utils.Suts;
 using AutoSubName.Tests.Utils.TestApp;
@@ -250,6 +251,39 @@ public static class RenameSubtitlesTests
             Sut.FileExists(video).ShouldBeTrue();
             Sut.FileExists(subtitle).ShouldBeFalse();
             Sut.FileExists($"{videoName}.srt").ShouldBeTrue();
+        }
+
+        [Theory]
+        [InlineData(LanguageFormat.TwoLetter, "zh")]
+        [InlineData(LanguageFormat.ThreeLetter, "zho")]
+        [InlineData(LanguageFormat.Ietf, "zh-Hans")]
+        [InlineData(LanguageFormat.English, "Chinese (Simplified)")]
+        [InlineData(LanguageFormat.Native, "中文（简体）")]
+        public async Task RenameSubtitles_WhenSetLanguageFormat_ShouldRenameFilesWithLanguageFormat(
+            LanguageFormat format,
+            string output
+        )
+        {
+            // Arrange
+            var episode = "S01E01";
+            var videoName = $"{NewGuid()} {episode}";
+            var video = await Sut.CreateVideoFileAsync(fileName: videoName);
+            var subtitle = await Sut.CreateSubtitleFileAsync(
+                fileName: $"zh-Hans.{NewGuid()}.{episode}"
+            );
+
+            var command = Sut.SeedRenameSubtitlesDirectCallCommand(x =>
+            {
+                x.LanguageFormat = format;
+            });
+
+            // Act
+            await Sut.Scoped<IMediator>().Call(x => x.Send(command));
+
+            // Assert
+            Sut.FileExists(video).ShouldBeTrue();
+            Sut.FileExists(subtitle).ShouldBeFalse();
+            Sut.FileExists($"{videoName}.{output}.srt").ShouldBeTrue();
         }
     }
 }
