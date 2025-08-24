@@ -65,10 +65,39 @@ public class AppCommandTests : StandaloneSetup<CoreAppSut>
         Sut.FileExists(subtitle).ShouldBeTrue();
     }
 
+    [Fact]
+    public async Task InvokeCommand_WhenEnableRecursive_ShouldRenameSubtitlesInSubDirectories()
+    {
+        // Arrange
+        var subPath = Path.Combine(Sut.RootFileDirectory, "sub");
+        Directory.CreateDirectory(subPath);
+
+        // Arrange
+        var episode = "S01E01";
+        var videoName = $"{NewGuid()} {episode}";
+        var video = await Sut.CreateVideoFileAsync(fileName: videoName, basePath: subPath);
+        var subtitle = await Sut.CreateSubtitleFileAsync(
+            fileName: $"{NewGuid()} {episode}",
+            basePath: subPath
+        );
+
+        // Act
+        List<string> args = ["--dir", Sut.RootFileDirectory, "--recursive"];
+        var result = await Sut.ExecuteAppCommandAsync([.. args]);
+
+        // Assert
+        result.ExitCode.ShouldBe(0, result.Error);
+        result.Error.ShouldBeEmpty();
+
+        Sut.FileExists(video, basePath: subPath).ShouldBeTrue();
+        Sut.FileExists(subtitle, basePath: subPath).ShouldBeFalse();
+        Sut.FileExists($"{videoName}.srt", basePath: subPath).ShouldBeTrue();
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task InvokeCommand_WhenEnableRecursive_ShouldRenameSubtitlesInSubDirectories(
+    public async Task InvokeCommand_WhenDisableRecursive_ShouldNotRenameSubtitlesInSubDirectories(
         bool useDefault
     )
     {
@@ -76,7 +105,6 @@ public class AppCommandTests : StandaloneSetup<CoreAppSut>
         var subPath = Path.Combine(Sut.RootFileDirectory, "sub");
         Directory.CreateDirectory(subPath);
 
-        // Arrange
         var episode = "S01E01";
         var videoName = $"{NewGuid()} {episode}";
         var video = await Sut.CreateVideoFileAsync(fileName: videoName, basePath: subPath);
@@ -89,36 +117,8 @@ public class AppCommandTests : StandaloneSetup<CoreAppSut>
         List<string> args = ["--dir", Sut.RootFileDirectory];
         if (!useDefault)
         {
-            args.AddRange(["--shallow", "false"]);
+            args.AddRange(["--recursive", "false"]);
         }
-        var result = await Sut.ExecuteAppCommandAsync([.. args]);
-
-        // Assert
-        result.ExitCode.ShouldBe(0, result.Error);
-        result.Error.ShouldBeEmpty();
-
-        Sut.FileExists(video, basePath: subPath).ShouldBeTrue();
-        Sut.FileExists(subtitle, basePath: subPath).ShouldBeFalse();
-        Sut.FileExists($"{videoName}.srt", basePath: subPath).ShouldBeTrue();
-    }
-
-    [Fact]
-    public async Task InvokeCommand_WhenDisableRecursive_ShouldNotRenameSubtitlesInSubDirectories()
-    {
-        // Arrange
-        var subPath = Path.Combine(Sut.RootFileDirectory, "sub");
-        Directory.CreateDirectory(subPath);
-
-        var episode = "S01E01";
-        var videoName = $"{NewGuid()} {episode}";
-        var video = await Sut.CreateVideoFileAsync(fileName: videoName, basePath: subPath);
-        var subtitle = await Sut.CreateSubtitleFileAsync(
-            fileName: $"{NewGuid()} {episode}",
-            basePath: subPath
-        );
-
-        // Act
-        List<string> args = ["--dir", Sut.RootFileDirectory, "--shallow"];
         var result = await Sut.ExecuteAppCommandAsync(args);
 
         // Assert

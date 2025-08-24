@@ -22,9 +22,9 @@ public static class AppCommand
             Required = false,
         };
 
-        Option<bool> shallowOption = new("--shallow", ["-s"])
+        Option<bool> recursiveOption = new("--recursive", ["-r"])
         {
-            Description = "Disable recursive directory scanning.",
+            Description = "Enable recursive directory scanning.",
             Required = false,
         };
 
@@ -61,7 +61,7 @@ public static class AppCommand
         };
 
         rootCommand.Options.Add(dirOption);
-        rootCommand.Options.Add(shallowOption);
+        rootCommand.Options.Add(recursiveOption);
         rootCommand.Options.Add(namingPatternOption);
         rootCommand.Options.Add(languageFormatOption);
 
@@ -80,7 +80,7 @@ public static class AppCommand
                 var command = new RenameSubtitles.DirectCall.Command()
                 {
                     FolderPath = dir,
-                    Recursive = !parseResult.GetValue(shallowOption),
+                    Recursive = parseResult.GetValue(recursiveOption),
                     CustomNamingPattern = parseResult.GetValue(namingPatternOption),
                     LanguageFormat = parseResult.GetValue(languageFormatOption),
                 };
