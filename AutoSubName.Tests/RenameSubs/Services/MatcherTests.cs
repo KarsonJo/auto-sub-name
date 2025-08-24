@@ -121,6 +121,61 @@ public class MatcherTests : ClassFixtureSetup<CoreAppSut>
     }
 
     [Fact]
+    public void Match_WhenSingleVideoFile_ShouldMatchToAllSubtitles()
+    {
+        // Arrange
+        List<MediaFile> files =
+        [
+            Sut.SeedMediaFile(x =>
+            {
+                x.SetProperty(x => x.FileName, "nothing-in-common.srt");
+                x.SetProperty(x => x.Type, MediaType.Subtitle);
+            }),
+            Sut.SeedMediaFile(x =>
+            {
+                x.SetProperty(x => x.FileName, "not-related.srt");
+                x.SetProperty(x => x.Type, MediaType.Subtitle);
+            }),
+            Sut.SeedMediaFile(x =>
+            {
+                x.SetProperty(x => x.FileName, "show.name.mp4");
+                x.SetProperty(x => x.Type, MediaType.Video);
+            }),
+        ];
+
+        // Act
+        var result = Sut.Scoped<IMatcher>().Call(x => x.Match(files));
+
+        // Assert
+        result.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void Match_WhenSingleVideoFileButMatchedByKeyword_ShouldReturnEmptyResult()
+    {
+        // Arrange
+        List<MediaFile> files =
+        [
+            Sut.SeedMediaFile(x =>
+            {
+                x.SetProperty(x => x.FileName, "S01E01.srt");
+                x.SetProperty(x => x.Type, MediaType.Subtitle);
+            }),
+            Sut.SeedMediaFile(x =>
+            {
+                x.SetProperty(x => x.FileName, "show.name.mp4");
+                x.SetProperty(x => x.Type, MediaType.Video);
+            }),
+        ];
+
+        // Act
+        var result = Sut.Scoped<IMatcher>().Call(x => x.Match(files));
+
+        // Assert
+        result.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Match_WhenVideosAndSubtitlesHaveTheSameCount_ShouldReturnResultAccordingToOrder()
     {
         // Arrange

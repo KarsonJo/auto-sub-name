@@ -30,6 +30,7 @@ public class Matcher : IMatcher
     [
         new SeasonEpisodeMatcher(),
         new SeriesIdMatcher(),
+        new SingleVideoFileMatcher(),
         new FileOrderMatcher(),
     ];
 
@@ -98,11 +99,6 @@ public abstract class KeywordMatcher<T> : IModularMatcher
             }
         }
 
-        if (videoMap.Count == 0)
-        {
-            return;
-        }
-
         // Match subtitles
         for (int i = subtitles.Count - 1; i >= 0; i--)
         {
@@ -142,6 +138,27 @@ public partial class SeriesIdMatcher : KeywordMatcher<string>
 
     [GeneratedRegex(@"[A-Z]{2,5}-\d{3,4}", RegexOptions.IgnoreCase)]
     private static partial Regex SeriesId();
+}
+
+public class SingleVideoFileMatcher : IModularMatcher
+{
+    /// <summary>
+    /// Matches subtitles to a single video file. The video and subtitles are assumed to be in the same folder.
+    /// </summary>
+    /// <inheritdoc/>
+    public void Match(List<MediaFile> videos, List<MediaFile> subtitles, SortedSet<Result> results)
+    {
+        if (videos.Count != 1)
+        {
+            return;
+        }
+
+        for (int i = subtitles.Count - 1; i >= 0; i--)
+        {
+            results.Add(new(videos[0], subtitles[i]));
+            subtitles.RemoveAt(i);
+        }
+    }
 }
 
 public class FileOrderMatcher : IModularMatcher
