@@ -9,12 +9,12 @@ public interface IMatcher
 {
     public record Result
     {
-        public MediaFile Video { get; }
+        public MediaFile? Video { get; }
         public MediaFile Subtitle { get; }
 
-        public Result(MediaFile video, MediaFile subtitle)
+        public Result(MediaFile? video, MediaFile subtitle)
         {
-            Debug.Assert(video.Type == MediaType.Video);
+            Debug.Assert(video is null || video.Type == MediaType.Video);
             Debug.Assert(subtitle.Type == MediaType.Subtitle);
             Subtitle = subtitle;
             Video = video;
@@ -30,12 +30,18 @@ public class Matcher : IMatcher
     [
         new SeasonEpisodeMatcher(),
         new SeriesIdMatcher(),
+        new FileOrderMatcher(),
     ];
 
     public List<Result> Match(IEnumerable<MediaFile> files)
     {
         var videos = files.Where(x => x.Type == MediaType.Video).ToList();
         var subtitles = files.Where(x => x.Type == MediaType.Subtitle).ToList();
+
+        if (videos.Count == 0 || subtitles.Count == 0)
+        {
+            return [];
+        }
 
         List<Result> results = [];
         foreach (var matcher in matchers)
@@ -48,6 +54,18 @@ public class Matcher : IMatcher
             }
         }
 
+        // Sort result for deterministic output
+        results.Sort(
+            static (a, b) =>
+            {
+                var videoCompare = string.Compare(a.Video?.FileName, b.Video?.FileName);
+                if (videoCompare != 0)
+                {
+                    return videoCompare;
+                }
+                return string.Compare(a.Subtitle.FileName, b.Subtitle.FileName);
+            }
+        );
         return results;
     }
 }
@@ -89,8 +107,10 @@ public abstract class KeywordMatcher<T> : IModularMatcher
         for (int i = subtitles.Count - 1; i >= 0; i--)
         {
             var keyword = ExtractKeyword(subtitles[i].FileName);
-            if (keyword is not null && videoMap.TryGetValue(keyword, out var video))
+            if (keyword is not null)
             {
+                videoMap.TryGetValue(keyword, out var video);
+                // Video may be null, but still should be matched.
                 results.Add(new(video, subtitles[i]));
                 subtitles.RemoveAt(i);
             }
@@ -122,4 +142,32 @@ public partial class SeriesIdMatcher : KeywordMatcher<string>
 
     [GeneratedRegex(@"[A-Z]{2,5}-\d{3,4}", RegexOptions.IgnoreCase)]
     private static partial Regex SeriesId();
+}
+
+public class FileOrderMatcher : IModularMatcher
+{
+    /// <summary>
+    /// Matches subtitles to videos. The videos and subtitles are assumed to be in the same folder, having the same file count and in the same order.
+    /// </summary>
+    /// <inheritdoc/>
+    public void Match(List<MediaFile> videos, List<MediaFile> subtitles, List<Result> results)
+    {
+        if (videos.Count != subtitles.Count)
+        {
+            return;
+        }
+
+        videos.Sort(
+            static (a, b) => string.Compare(a.FileName, b.FileName, StringComparison.Ordinal)
+        );
+        subtitles.Sort(
+            static (a, b) => string.Compare(a.FileName, b.FileName, StringComparison.Ordinal)
+        );
+
+        for (int i = videos.Count - 1; i >= 0; i--)
+        {
+            results.Add(new(videos[i], subtitles[i]));
+            subtitles.RemoveAt(i);
+        }
+    }
 }

@@ -28,22 +28,6 @@ public static class RenameSubtitlesTests
         }
 
         [Fact]
-        public async Task RenameSubtitles_WhenSubtitleFileDoesNotHaveEpisodeNumber_ShouldNotTouchFiles()
-        {
-            // Arrange
-            var video = await Sut.CreateVideoFileAsync();
-            var subtitle = await Sut.CreateSubtitleFileAsync();
-
-            // Act
-            await Sut.Scoped<IMediator>()
-                .Call(x => x.Send(Sut.SeedRenameSubtitlesDirectCallCommand()));
-
-            // Assert
-            Sut.FileExists(video).ShouldBeTrue();
-            Sut.FileExists(subtitle).ShouldBeTrue();
-        }
-
-        [Fact]
         public async Task RenameSubtitles_WhenSubtitleFileDoesNotHaveMatchingEpisodeNumber_ShouldNotTouchFiles()
         {
             // Arrange

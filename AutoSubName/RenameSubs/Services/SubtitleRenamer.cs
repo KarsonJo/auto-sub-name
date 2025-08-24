@@ -45,6 +45,11 @@ public partial class SubtitleRenamer(ISubtitleLanguageDetector languageDetector,
         HashSet<RenamePlan> plans = [];
         foreach (var match in matchResults)
         {
+            if (match.Video is null)
+            {
+                continue;
+            }
+
             var languageName = usedParameters.Contains("lang")
                 ? languageDetector.GetLanguage(match.Subtitle.FullPath)
                 : null;
