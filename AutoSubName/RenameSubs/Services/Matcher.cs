@@ -26,7 +26,11 @@ public interface IMatcher
 
 public class Matcher : IMatcher
 {
-    private readonly List<IModularMatcher> matchers = [new SeasonEpisodeMatcher()];
+    private readonly List<IModularMatcher> matchers =
+    [
+        new SeasonEpisodeMatcher(),
+        new SeriesIdMatcher(),
+    ];
 
     public List<Result> Match(IEnumerable<MediaFile> files)
     {
@@ -106,4 +110,16 @@ public partial class SeasonEpisodeMatcher : KeywordMatcher<string>
 
     [GeneratedRegex(@"S(\d+)[\s\-_.]?E(\d+)", RegexOptions.IgnoreCase)]
     private static partial Regex Episode();
+}
+
+public partial class SeriesIdMatcher : KeywordMatcher<string>
+{
+    protected override string? ExtractKeyword(string fileName)
+    {
+        var m = SeriesId().Match(fileName);
+        return m.Success ? m.Value : null;
+    }
+
+    [GeneratedRegex(@"[A-Z]{2,5}-\d{3,4}", RegexOptions.IgnoreCase)]
+    private static partial Regex SeriesId();
 }
