@@ -21,7 +21,7 @@ public interface IMatcher
         }
     }
 
-    public List<Result> Match(IEnumerable<MediaFile> files);
+    public SortedSet<Result> Match(IEnumerable<MediaFile> files);
 }
 
 public class Matcher : IMatcher
@@ -33,7 +33,16 @@ public class Matcher : IMatcher
         new FileOrderMatcher(),
     ];
 
-    public List<Result> Match(IEnumerable<MediaFile> files)
+    private static Comparer<Result> Comparer =>
+        Comparer<Result>.Create(
+            static (a, b) =>
+            {
+                var cmp = string.Compare(a.Video?.FileName, b.Video?.FileName);
+                return cmp != 0 ? cmp : string.Compare(a.Subtitle.FileName, b.Subtitle.FileName);
+            }
+        );
+
+    public SortedSet<Result> Match(IEnumerable<MediaFile> files)
     {
         var videos = files.Where(x => x.Type == MediaType.Video).ToList();
         var subtitles = files.Where(x => x.Type == MediaType.Subtitle).ToList();
@@ -43,7 +52,7 @@ public class Matcher : IMatcher
             return [];
         }
 
-        List<Result> results = [];
+        SortedSet<Result> results = new(Comparer);
         foreach (var matcher in matchers)
         {
             matcher.Match(videos, subtitles, results);
@@ -54,18 +63,9 @@ public class Matcher : IMatcher
             }
         }
 
-        // Sort result for deterministic output
-        results.Sort(
-            static (a, b) =>
-            {
-                var videoCompare = string.Compare(a.Video?.FileName, b.Video?.FileName);
-                if (videoCompare != 0)
-                {
-                    return videoCompare;
-                }
-                return string.Compare(a.Subtitle.FileName, b.Subtitle.FileName);
-            }
-        );
+        // Filter out empty results
+        results.RemoveWhere(x => x.Video is null);
+
         return results;
     }
 }
@@ -78,14 +78,14 @@ public interface IModularMatcher
     /// <param name="videos">Videos to match.</param>
     /// <param name="subtitles">Subtitle files to match. Matched subtitles will be removed from this list.</param>
     /// <param name="results">Newly matched subtitles will be added to this list.</param>
-    public void Match(List<MediaFile> videos, List<MediaFile> subtitles, List<Result> results);
+    public void Match(List<MediaFile> videos, List<MediaFile> subtitles, SortedSet<Result> results);
 }
 
 public abstract class KeywordMatcher<T> : IModularMatcher
     where T : notnull
 {
     /// <inheritdoc />
-    public void Match(List<MediaFile> videos, List<MediaFile> subtitles, List<Result> results)
+    public void Match(List<MediaFile> videos, List<MediaFile> subtitles, SortedSet<Result> results)
     {
         // Map keyword to video
         Dictionary<T, MediaFile> videoMap = [];
@@ -150,7 +150,7 @@ public class FileOrderMatcher : IModularMatcher
     /// Matches subtitles to videos. The videos and subtitles are assumed to be in the same folder, having the same file count and in the same order.
     /// </summary>
     /// <inheritdoc/>
-    public void Match(List<MediaFile> videos, List<MediaFile> subtitles, List<Result> results)
+    public void Match(List<MediaFile> videos, List<MediaFile> subtitles, SortedSet<Result> results)
     {
         if (videos.Count != subtitles.Count)
         {

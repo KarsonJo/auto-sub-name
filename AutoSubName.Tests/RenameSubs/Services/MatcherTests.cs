@@ -121,31 +121,6 @@ public class MatcherTests : ClassFixtureSetup<CoreAppSut>
     }
 
     [Fact]
-    public void Match_WhenSupportedKeywordButNoMatch_ShouldReturnResultWithEmptyVideo()
-    {
-        // Arrange
-        List<MediaFile> files =
-        [
-            Sut.SeedMediaFile(x =>
-            {
-                x.SetProperty(x => x.FileName, $"S01E01.srt");
-                x.SetProperty(x => x.Type, MediaType.Subtitle);
-            }),
-            Sut.SeedMediaFile(x =>
-            {
-                x.SetProperty(x => x.FileName, $"S02E02.mp4");
-                x.SetProperty(x => x.Type, MediaType.Video);
-            }),
-        ];
-
-        // Act
-        var result = Sut.Scoped<IMatcher>().Call(x => x.Match(files));
-
-        // Assert
-        result.ShouldHaveSingleItem().Video.ShouldBeNull();
-    }
-
-    [Fact]
     public void Match_WhenVideosAndSubtitlesHaveTheSameCount_ShouldReturnResultAccordingToOrder()
     {
         // Arrange
@@ -178,13 +153,48 @@ public class MatcherTests : ClassFixtureSetup<CoreAppSut>
 
         // Assert
         result.Count.ShouldBe(2);
-        result.ForEach(x =>
-            x.Video.ShouldNotBeNull()
-                .FileName.ShouldBe($"show.name.Episode {result.IndexOf(x) + 1}.mp4")
-        );
-        result.ForEach(x =>
-            x.Subtitle.ShouldNotBeNull()
-                .FileName.ShouldBe($"0{result.IndexOf(x) + 1} show.name.srt")
-        );
+
+        int i = 1;
+        foreach (var item in result)
+        {
+            item.Video.ShouldNotBeNull().FileName.ShouldBe($"show.name.Episode {i}.mp4");
+            item.Subtitle.ShouldNotBeNull().FileName.ShouldBe($"0{i} show.name.srt");
+            i++;
+        }
+    }
+
+    [Fact]
+    public void Match_WhenVideosAndSubtitlesHaveTheSameCountButMatchedByKeyword_ShouldReturnEmptyResult()
+    {
+        // Arrange
+        List<MediaFile> files =
+        [
+            Sut.SeedMediaFile(x =>
+            {
+                x.SetProperty(x => x.FileName, "S01E01.srt");
+                x.SetProperty(x => x.Type, MediaType.Subtitle);
+            }),
+            Sut.SeedMediaFile(x =>
+            {
+                x.SetProperty(x => x.FileName, "S01E02.srt");
+                x.SetProperty(x => x.Type, MediaType.Subtitle);
+            }),
+            Sut.SeedMediaFile(x =>
+            {
+                x.SetProperty(x => x.FileName, "show.name.S02E01.mp4");
+                x.SetProperty(x => x.Type, MediaType.Video);
+            }),
+            Sut.SeedMediaFile(x =>
+            {
+                x.SetProperty(x => x.FileName, "show.name.S02E02.mp4");
+                x.SetProperty(x => x.Type, MediaType.Video);
+            }),
+        ];
+
+        // Act
+        var result = Sut.Scoped<IMatcher>().Call(x => x.Match(files));
+
+        // Assert
+        result.ShouldBeEmpty();
     }
 }
