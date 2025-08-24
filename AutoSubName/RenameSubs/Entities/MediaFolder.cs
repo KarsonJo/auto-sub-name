@@ -1,8 +1,4 @@
-﻿using System.Text.RegularExpressions;
-using AutoSubName.RenameSubs.Services;
-using SmartFormat;
-
-namespace AutoSubName.RenameSubs.Entities;
+﻿namespace AutoSubName.RenameSubs.Entities;
 
 public static class MediaFileExtensions
 {
@@ -12,15 +8,7 @@ public static class MediaFileExtensions
     // csharpier-ignore-end
 }
 
-public enum LanguageFormat
-{
-    TwoLetter,
-    ThreeLetter,
-    Ietf,
-    English,
-    Native,
-    Display,
-}
+public record RenamePlan(string OldName, string NewName);
 
 public partial class MediaFolder
 {
@@ -49,96 +37,16 @@ public partial class MediaFolder
         return new() { MediaFiles = mediaFiles };
     }
 
-    public void RenameSubs(
-        string namingPattern,
-        LanguageFormat? languageFormat,
-        ISubtitleLanguageDetector languageDetector
-    )
+    public void RenameSubs(IEnumerable<RenamePlan> renames)
     {
-        var usedParameters = GetUsedParameters(namingPattern);
+        var mediaFileDict = MediaFiles.ToDictionary(x => x.FileName, x => x);
 
-        var subtitleFiles = MediaFiles.Where(x => x.Type == MediaType.Subtitle).ToHashSet();
-
-        foreach (var subtitleFile in subtitleFiles)
+        foreach (var (oldName, newName) in renames)
         {
-            // TODO: Skip exact matches
-            string? episode = ExtractEpisode(subtitleFile.FileName);
-
-            if (episode == null)
-            {
-                continue;
-            }
-
-            // TODO: Make this more efficient
-            var matchedVideo = MediaFiles.FirstOrDefault(x =>
-                x.Type == MediaType.Video
-                && x.FileName.Contains(episode, StringComparison.OrdinalIgnoreCase)
-            );
-
-            if (matchedVideo == null)
-            {
-                continue;
-            }
-
-            var languageName = usedParameters.Contains("lang")
-                ? languageDetector.GetLanguage(subtitleFile.FullPath)
-                : null;
-
-            var newName = Smart.Format(
-                namingPattern,
-                new
-                {
-                    name = Path.GetFileNameWithoutExtension(matchedVideo.FileName),
-                    lang = languageName is null
-                        ? null
-                        : languageFormat switch
-                        {
-                            LanguageFormat.TwoLetter => languageName.TwoLetterISOLanguageName,
-                            LanguageFormat.ThreeLetter => languageName.ThreeLetterISOLanguageName,
-                            LanguageFormat.Ietf => languageName.IetfLanguageTag,
-                            LanguageFormat.English => languageName.EnglishName,
-                            LanguageFormat.Native => languageName.NativeName,
-                            LanguageFormat.Display => languageName.DisplayName,
-                            _ => throw new InvalidOperationException(
-                                "Language format is required when using language parameter."
-                            ),
-                        },
-                    ext = subtitleFile.Extension,
-                }
-            );
-
-            subtitleFile.Rename(newName);
+            var mediaFile = mediaFileDict[oldName];
+            mediaFile.Rename(newName);
         }
     }
-
-    private static HashSet<string> GetUsedParameters(string namingPattern)
-    {
-        HashSet<string> usedParameters = [];
-        foreach (Match parameter in NamingPatternParameter().Matches(namingPattern))
-        {
-            var name = parameter.Groups[1].Value;
-            if (!AllowedNamingParameters.Contains(name))
-            {
-                throw new UnsupportedNamingParameterException(name);
-            }
-            usedParameters.Add(name);
-        }
-        return usedParameters;
-    }
-
-    public static readonly HashSet<string> AllowedNamingParameters = ["name", "lang", "ext"];
-
-    [GeneratedRegex(@"\{([a-zA-Z0-9]+)(.*?)\}")]
-    private static partial Regex NamingPatternParameter();
-
-    private static string? ExtractEpisode(string fileName)
-    {
-        var m = Episode().Match(fileName);
-        return m.Success ? m.Value : null;
-    }
-
-    [GeneratedRegex(@"S\d{2}E\d{2}", RegexOptions.IgnoreCase)]
-    private static partial Regex Episode();
 }
 
 public enum MediaType

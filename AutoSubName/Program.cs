@@ -22,6 +22,7 @@ public static class Program
 
         services.AddScoped<IMediaFolderRepository, MediaFolderRepository>();
         services.AddScoped<ISubtitleLanguageDetector, SubtitleLanguageDetector>();
+        services.AddScoped<ISubtitleRenamer, SubtitleRenamer>();
 
         return services;
     }

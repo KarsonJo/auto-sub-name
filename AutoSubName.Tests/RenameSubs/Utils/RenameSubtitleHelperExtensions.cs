@@ -1,5 +1,5 @@
-﻿using AutoSubName.RenameSubs.Entities;
-using AutoSubName.RenameSubs.Features;
+﻿using AutoSubName.RenameSubs.Features;
+using AutoSubName.RenameSubs.Services;
 using AutoSubName.Tests.Utils;
 using AutoSubName.Tests.Utils.Suts;
 
@@ -14,7 +14,11 @@ public static class RenameSubtitleHelperExtensions
     )
     {
         return modifier.Modify(
-            new() { FolderPath = sut.RootFileDirectory, LanguageFormat = LanguageFormat.Ietf }
+            new()
+            {
+                FolderPath = sut.RootFileDirectory,
+                LanguageFormat = ISubtitleRenamer.LanguageFormat.Ietf,
+            }
         );
     }
     #endregion

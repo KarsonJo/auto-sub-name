@@ -1,5 +1,4 @@
 ﻿using AutoSubName.RenameSubs.Data;
-using AutoSubName.RenameSubs.Entities;
 using AutoSubName.RenameSubs.Services;
 using Mediator;
 
@@ -7,9 +6,6 @@ namespace AutoSubName.RenameSubs.Features;
 
 public static class RenameSubtitles
 {
-    public static readonly string DefaultNamingPattern = "{name}{lang:.{}|}.{ext}";
-    public static HashSet<string> PossibleVariables => MediaFolder.AllowedNamingParameters;
-
     public static class DirectCall
     {
         public class Command : IRequest
@@ -17,13 +13,11 @@ public static class RenameSubtitles
             public string FolderPath { get; set; } = null!;
             public bool Recursive { get; set; }
             public string? CustomNamingPattern { get; set; }
-            public LanguageFormat LanguageFormat { get; set; }
+            public ISubtitleRenamer.LanguageFormat LanguageFormat { get; set; }
         }
 
-        public class Handler(
-            IMediaFolderRepository repository,
-            ISubtitleLanguageDetector languageDetector
-        ) : IRequestHandler<Command>
+        public class Handler(IMediaFolderRepository repository, ISubtitleRenamer subtitleRenamer)
+            : IRequestHandler<Command>
         {
             public async ValueTask<Unit> Handle(
                 Command request,
@@ -45,11 +39,13 @@ public static class RenameSubtitles
                 {
                     var folder = await repository.GetAsync(path, cancellationToken);
 
-                    folder.RenameSubs(
-                        request.CustomNamingPattern ?? DefaultNamingPattern,
-                        request.LanguageFormat,
-                        languageDetector
+                    var plans = subtitleRenamer.RenameSubs(
+                        folder,
+                        request.CustomNamingPattern,
+                        request.LanguageFormat
                     );
+
+                    folder.RenameSubs(plans);
 
                     await repository.SaveChangesAsync(cancellationToken);
                 }

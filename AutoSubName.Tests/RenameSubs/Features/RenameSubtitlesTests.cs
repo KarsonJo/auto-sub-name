@@ -1,4 +1,4 @@
-﻿using AutoSubName.RenameSubs.Entities;
+﻿using AutoSubName.RenameSubs.Services;
 using AutoSubName.Tests.RenameSubs.Utils;
 using AutoSubName.Tests.Utils;
 using AutoSubName.Tests.Utils.Suts;
@@ -254,13 +254,13 @@ public static class RenameSubtitlesTests
         }
 
         [Theory]
-        [InlineData(LanguageFormat.TwoLetter, "zh")]
-        [InlineData(LanguageFormat.ThreeLetter, "zho")]
-        [InlineData(LanguageFormat.Ietf, "zh-Hans")]
-        [InlineData(LanguageFormat.English, "Chinese (Simplified)")]
-        [InlineData(LanguageFormat.Native, "中文（简体）")]
+        [InlineData(ISubtitleRenamer.LanguageFormat.TwoLetter, "zh")]
+        [InlineData(ISubtitleRenamer.LanguageFormat.ThreeLetter, "zho")]
+        [InlineData(ISubtitleRenamer.LanguageFormat.Ietf, "zh-Hans")]
+        [InlineData(ISubtitleRenamer.LanguageFormat.English, "Chinese (Simplified)")]
+        [InlineData(ISubtitleRenamer.LanguageFormat.Native, "中文（简体）")]
         public async Task RenameSubtitles_WhenSetLanguageFormat_ShouldRenameFilesWithLanguageFormat(
-            LanguageFormat format,
+            ISubtitleRenamer.LanguageFormat format,
             string output
         )
         {

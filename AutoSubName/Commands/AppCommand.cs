@@ -1,6 +1,6 @@
 ﻿using System.CommandLine;
-using AutoSubName.RenameSubs.Entities;
 using AutoSubName.RenameSubs.Features;
+using AutoSubName.RenameSubs.Services;
 using Mediator;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -31,10 +31,10 @@ public static class AppCommand
         Option<string> namingPatternOption = new("--pattern", ["-p"])
         {
             Description = $"""
-                Use a custom naming pattern. Defaults to "{RenameSubtitles.DefaultNamingPattern}".
+                Use a custom naming pattern. Defaults to "{ISubtitleRenamer.DefaultNamingPattern}".
                 Possible variables: {string.Join(
                     ", ",
-                    RenameSubtitles.PossibleVariables.Select(x => $"{{{x}}}")
+                    ISubtitleRenamer.PossibleVariables.Select(x => $"{{{x}}}")
                 )}.
                 The format follows axuno/SmartFormat interpolation syntax. 
                 See https://github.com/axuno/SmartFormat/wiki/How-Formatters-Work.
@@ -42,20 +42,20 @@ public static class AppCommand
             Required = false,
         };
 
-        Option<LanguageFormat> languageFormatOption = new(
+        Option<ISubtitleRenamer.LanguageFormat> languageFormatOption = new(
             "--language-format",
             ["--lang-format", "-lf"]
         )
         {
-            DefaultValueFactory = _ => LanguageFormat.Ietf,
+            DefaultValueFactory = _ => ISubtitleRenamer.LanguageFormat.Ietf,
             Description = $"""
                 The output language format.
-                {LanguageFormat.TwoLetter}: ISO 639-1 two-letter or ISO 639-3 three-letter code. e.g. "zh"
-                {LanguageFormat.ThreeLetter}: ISO 639-2 three-letter code. e.g. "zho"
-                {LanguageFormat.Ietf}: IETF BCP 47 language tag (RFC 4646). e.g. "zh-Hans"
-                {LanguageFormat.English}: language name in English.
-                {LanguageFormat.Native}: language name in the native language.
-                {LanguageFormat.Display}: language name in your system language.
+                {ISubtitleRenamer.LanguageFormat.TwoLetter}: ISO 639-1 two-letter or ISO 639-3 three-letter code. e.g. "zh"
+                {ISubtitleRenamer.LanguageFormat.ThreeLetter}: ISO 639-2 three-letter code. e.g. "zho"
+                {ISubtitleRenamer.LanguageFormat.Ietf}: IETF BCP 47 language tag (RFC 4646). e.g. "zh-Hans"
+                {ISubtitleRenamer.LanguageFormat.English}: language name in English.
+                {ISubtitleRenamer.LanguageFormat.Native}: language name in the native language.
+                {ISubtitleRenamer.LanguageFormat.Display}: language name in your system language.
                 """,
             Required = false,
         };
