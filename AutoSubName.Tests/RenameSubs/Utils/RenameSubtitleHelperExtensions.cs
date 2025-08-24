@@ -1,4 +1,5 @@
-﻿using AutoSubName.RenameSubs.Features;
+﻿using AutoSubName.RenameSubs.Entities;
+using AutoSubName.RenameSubs.Features;
 using AutoSubName.RenameSubs.Services;
 using AutoSubName.Tests.Utils;
 using AutoSubName.Tests.Utils.Suts;
@@ -20,6 +21,18 @@ public static class RenameSubtitleHelperExtensions
                 LanguageFormat = ISubtitleRenamer.LanguageFormat.Ietf,
             }
         );
+    }
+    #endregion
+
+    #region Entity Seeders
+    public static MediaFile SeedMediaFile(this ISut sut, Action<MediaFile>? modifier = null)
+    {
+        return modifier.Modify(MediaFile.Create(sut.SeedFullPath(), MediaType.Video));
+    }
+
+    public static string SeedFullPath(this ISut sut, string? fileNameWithExt = null)
+    {
+        return Path.Combine(sut.RootFileDirectory, fileNameWithExt ?? Guid.NewGuid().ToString());
     }
     #endregion
 }
