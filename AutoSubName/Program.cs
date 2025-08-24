@@ -1,6 +1,5 @@
 ﻿using AutoSubName.Commands;
-using AutoSubName.RenameSubs.Data;
-using AutoSubName.RenameSubs.Services;
+using AutoSubName.RenameSubs.Setup;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AutoSubName;
@@ -20,10 +19,7 @@ public static class Program
             o.ServiceLifetime = ServiceLifetime.Scoped;
         });
 
-        services.AddScoped<IMediaFolderRepository, MediaFolderRepository>();
-        services.AddScoped<ISubtitleLanguageDetector, SubtitleLanguageDetector>();
-        services.AddScoped<ISubtitleRenamer, SubtitleRenamer>();
-        services.AddScoped<IMatcher, Matcher>();
+        services.AddRenameSubs();
 
         return services;
     }
