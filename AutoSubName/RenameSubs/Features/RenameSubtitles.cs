@@ -71,7 +71,15 @@ public static class RenameSubtitles
 
                 async Task RenameSubsInTopDirectory(string path)
                 {
-                    logger.LogDebug("Renaming subtitles in top directory {Path}.", path);
+                    if (request.DryRun)
+                    {
+                        logger.LogInformation("Renaming subtitles in top directory {Path}.", path);
+                    }
+                    else
+                    {
+                        logger.LogDebug("Renaming subtitles in top directory {Path}.", path);
+                    }
+
                     var folder = await repository.GetAsync(path, cancellationToken);
 
                     var plans = subtitleRenamer.RenameSubs(
