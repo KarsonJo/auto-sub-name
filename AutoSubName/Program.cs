@@ -1,27 +1,45 @@
 ﻿using AutoSubName.Commands;
 using AutoSubName.RenameSubs.Setup;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Serilog;
+using Serilog.Core;
 
 namespace AutoSubName;
 
 public static class Program
 {
+    public class CreateAppResult
+    {
+        public IHost App { get; set; } = null!;
+        public LoggingLevelSwitch LoggingSwitch { get; set; } = null!;
+    }
+
     /// <summary>
     /// All core application logic is defined here.
     /// </summary>
     /// <returns></returns>
-    public static ServiceCollection CreateAppService()
+    public static CreateAppResult CreateApp(Action<HostApplicationBuilder>? configuration = null)
     {
-        ServiceCollection services = new();
+        var builder = Host.CreateApplicationBuilder();
+        var services = builder.Services;
 
         services.AddMediator(o =>
         {
             o.ServiceLifetime = ServiceLifetime.Scoped;
         });
 
+        LoggingLevelSwitch @switch = new();
+        services.AddSerilog(x =>
+            x.MinimumLevel.ControlledBy(@switch)
+                .WriteTo.Console(outputTemplate: "{Message:lj}{NewLine}{Exception}")
+        );
+
         services.AddRenameSubs();
 
-        return services;
+        configuration?.Invoke(builder);
+
+        return new CreateAppResult { App = builder.Build(), LoggingSwitch = @switch };
     }
 
     /// <summary>
@@ -31,7 +49,6 @@ public static class Program
     /// <returns></returns>
     static Task<int> Main(string[] args)
     {
-        var services = CreateAppService().BuildServiceProvider();
-        return AppCommand.Create(services).Parse(args).InvokeAsync();
+        return AppCommand.Create(CreateApp()).Parse(args).InvokeAsync();
     }
 }

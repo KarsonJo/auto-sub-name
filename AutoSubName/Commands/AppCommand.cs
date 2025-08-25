@@ -12,7 +12,7 @@ public static class AppCommand
     /// Get the root command for the console application.
     /// </summary>
     /// <returns></returns>
-    public static RootCommand Create(IServiceProvider provider)
+    public static RootCommand Create(Program.CreateAppResult host)
     {
         RootCommand rootCommand = new("Bulk rename subtitles in a directory of video files.")!;
 
@@ -60,21 +60,35 @@ public static class AppCommand
             Required = false,
         };
 
+        Option<bool> verboseOption = new("--verbose", ["-v"])
+        {
+            Description = "Enable verbose logging.",
+            Required = false,
+        };
+
         rootCommand.Options.Add(dirOption);
         rootCommand.Options.Add(recursiveOption);
         rootCommand.Options.Add(namingPatternOption);
         rootCommand.Options.Add(languageFormatOption);
+        rootCommand.Options.Add(verboseOption);
 
         rootCommand.SetAction(
             async (parseResult, ct) =>
             {
+                // Set working directory
                 if (parseResult.GetValue(dirOption) is not string dir)
                 {
                     dir = Directory.GetCurrentDirectory();
                 }
 
-                // Start the application
-                using var scope = provider.CreateScope();
+                // Override logging level
+                if (parseResult.GetValue(verboseOption))
+                {
+                    host.LoggingSwitch.MinimumLevel = Serilog.Events.LogEventLevel.Verbose;
+                }
+
+                // Send the command
+                using var scope = host.App.Services.CreateScope();
 
                 var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
                 var command = new RenameSubtitles.DirectCall.Command()

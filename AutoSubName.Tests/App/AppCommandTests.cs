@@ -194,7 +194,7 @@ public static class AppCommandTestExtensions
         var error = new StringWriter();
         var config = new InvocationConfiguration { Output = output, Error = error };
 
-        var result = await AppCommand.Create(sut.Services).Parse(args).InvokeAsync(config);
+        var result = await AppCommand.Create(sut.CreateAppResult).Parse(args).InvokeAsync(config);
 
         return new Result(result, output.ToString(), error.ToString());
     }

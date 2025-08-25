@@ -1,19 +1,21 @@
 ﻿using AutoSubName.Tests.Utils.TestApp;
 using AutoSubName.Tests.Utils.TestApp.Resources;
 using Microsoft.Extensions.DependencyInjection;
+using static AutoSubName.Program;
 
 namespace AutoSubName.Tests.Utils.Suts;
 
 public interface ISut
 {
+    CreateAppResult CreateAppResult { get; }
     string RootFileDirectory { get; }
-    public ServiceProvider Services { get; }
+    public IServiceProvider Services { get; }
 }
 
 public class CoreAppSut(TestResourceManager manager) : ISut, IAsyncLifetime
 {
-    public ServiceProvider Services { get; private set; } = null!;
-
+    public CreateAppResult CreateAppResult { get; private set; } = null!;
+    public IServiceProvider Services { get; private set; } = null!;
     public string RootFileDirectory { get; private set; } = null!;
 
     protected virtual void ConfigureServices(IServiceCollection s) { }
@@ -21,11 +23,12 @@ public class CoreAppSut(TestResourceManager manager) : ISut, IAsyncLifetime
     public virtual async ValueTask InitializeAsync()
     {
         // Services
-        var services = Program.CreateAppService();
+        CreateAppResult = CreateApp(builder =>
+        {
+            ConfigureServices(builder.Services);
+        });
 
-        ConfigureServices(services);
-
-        Services = services.BuildServiceProvider();
+        Services = CreateAppResult.App.Services;
 
         // Root Directory
         RootFileDirectory = Path.Combine(
@@ -38,6 +41,11 @@ public class CoreAppSut(TestResourceManager manager) : ISut, IAsyncLifetime
     public virtual async ValueTask DisposeAsync()
     {
         GC.SuppressFinalize(this);
-        await Services.DisposeAsync();
+
+        var host = CreateAppResult.App;
+        if (host is IAsyncDisposable asyncHost)
+            await asyncHost.DisposeAsync();
+        else
+            host.Dispose();
     }
 }
