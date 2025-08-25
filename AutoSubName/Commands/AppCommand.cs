@@ -81,6 +81,16 @@ public static class AppCommand
             Required = false,
         };
 
+        Option<List<string>> matchersOption = new("--matchers", ["-m"])
+        {
+            Description = """
+                Additional file name matchers to extract series information.
+                The default will match formats like S01E01 and XXXX-123.
+                A matcher is a regular expression. Match groups are extracted as series information.
+                """,
+            Required = false,
+        };
+
         rootCommand.Options.Add(dirOption);
         rootCommand.Options.Add(recursiveOption);
         rootCommand.Options.Add(namingPatternOption);
@@ -88,6 +98,7 @@ public static class AppCommand
         rootCommand.Options.Add(verboseOption);
         rootCommand.Options.Add(dryRunOption);
         rootCommand.Options.Add(languagesOption);
+        rootCommand.Options.Add(matchersOption);
 
         rootCommand.SetAction(
             async (parseResult, ct) =>
@@ -125,6 +136,34 @@ public static class AppCommand
                         );
                         return 1;
                     }
+                }
+
+                // Set matchers
+                if (parseResult.GetValue(matchersOption) is List<string> matchers)
+                {
+                    var srv = host.App.Services.GetRequiredService<IMatcher>();
+
+                    List<IModularMatcher> modularMatchers = [];
+
+                    foreach (var matcher in matchers)
+                    {
+                        try
+                        {
+                            modularMatchers.Add(new GenericRegexMatcher(matcher));
+                        }
+                        catch (ArgumentException ex)
+                        {
+                            var logger = host.App.Services.GetRequiredService<ILogger<IMatcher>>();
+                            logger.LogError(
+                                "The provided matcher {Matcher} is not valid: {Message}",
+                                matcher,
+                                ex.Message
+                            );
+                            return 1;
+                        }
+                    }
+
+                    srv.SetExtraMatchers(modularMatchers);
                 }
 
                 // Send the command

@@ -21,18 +21,21 @@ public interface IMatcher
         }
     }
 
+    public void SetExtraMatchers(IEnumerable<IModularMatcher> matchers);
     public SortedSet<Result> Match(IEnumerable<MediaFile> files);
 }
 
 public class Matcher : IMatcher
 {
-    private readonly List<IModularMatcher> matchers =
+    private static readonly IReadOnlyList<IModularMatcher> defaultMatchers =
     [
         new SeasonEpisodeMatcher(),
         new SeriesIdMatcher(),
         new SingleVideoFileMatcher(),
         new FileOrderMatcher(),
     ];
+
+    private IReadOnlyList<IModularMatcher> Matchers { get; set; } = defaultMatchers;
 
     private static Comparer<Result> Comparer =>
         Comparer<Result>.Create(
@@ -42,6 +45,11 @@ public class Matcher : IMatcher
                 return cmp != 0 ? cmp : string.Compare(a.Subtitle.FileName, b.Subtitle.FileName);
             }
         );
+
+    public void SetExtraMatchers(IEnumerable<IModularMatcher> matchers)
+    {
+        Matchers = [.. matchers, .. defaultMatchers];
+    }
 
     public SortedSet<Result> Match(IEnumerable<MediaFile> files)
     {
@@ -54,7 +62,7 @@ public class Matcher : IMatcher
         }
 
         SortedSet<Result> results = new(Comparer);
-        foreach (var matcher in matchers)
+        foreach (var matcher in Matchers)
         {
             matcher.Match(videos, subtitles, results);
 
@@ -114,6 +122,42 @@ public abstract class KeywordMatcher<T> : IModularMatcher
     }
 
     protected abstract T? ExtractKeyword(string fileName);
+}
+
+public class GenericRegexMatcher(string regex) : KeywordMatcher<string>
+{
+    private Regex Regex { get; } = new(regex, RegexOptions.IgnoreCase);
+
+    protected override string? ExtractKeyword(string fileName)
+    {
+        var match = Regex.Match(fileName);
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        if (match.Groups.Count == 1)
+        {
+            return match.Groups[0].Value;
+        }
+        Debug.Assert(match.Groups.Count >= 2);
+
+        List<string> groups = [];
+        for (int i = 1; i < match.Groups.Count; i++)
+        {
+            var group = match.Groups[i];
+            if (int.TryParse(group.Value, out var numberValue))
+            {
+                groups.Add(numberValue.ToString());
+            }
+            else
+            {
+                groups.Add(group.Value);
+            }
+        }
+
+        return string.Join("@#", groups);
+    }
 }
 
 public partial class SeasonEpisodeMatcher : KeywordMatcher<string>

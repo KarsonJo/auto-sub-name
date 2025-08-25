@@ -231,6 +231,27 @@ public class AppCommandTests : StandaloneSetup<CoreAppSut>
         Sut.FileExists(subtitle).ShouldBeFalse();
         Sut.FileExists($"{videoName}.ca.srt").ShouldBeTrue();
     }
+
+    [Fact]
+    public async Task InvokeCommand_WhenSetCustomMatcher_ShouldMatchCustomInformation()
+    {
+        // Arrange
+        var videoName = $"{NewGuid()} SS1EE01";
+        var video = await Sut.CreateVideoFileAsync(fileName: videoName);
+        var subtitle = await Sut.CreateSubtitleFileAsync(fileName: $"{NewGuid()} SS01EE01");
+
+        // Act
+        List<string> args = ["--dir", Sut.RootFileDirectory, "--matchers", @"SS(\d+)EE(\d+)"];
+        var result = await Sut.ExecuteAppCommandAsync(args);
+
+        // Assert
+        result.ExitCode.ShouldBe(0, result.Error);
+        result.Error.ShouldBeEmpty();
+
+        Sut.FileExists(video).ShouldBeTrue();
+        Sut.FileExists(subtitle).ShouldBeFalse();
+        Sut.FileExists($"{videoName}.srt").ShouldBeTrue();
+    }
 }
 
 public static class AppCommandTestExtensions

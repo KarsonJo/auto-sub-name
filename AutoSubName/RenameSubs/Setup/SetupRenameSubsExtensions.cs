@@ -12,7 +12,7 @@ public static class SetupRenameSubsExtensions
         services
             .AddSingleton<ISubtitleLanguageDetector, SubtitleLanguageDetector>()
             .AddScoped<ISubtitleRenamer, SubtitleRenamer>()
-            .AddScoped<IMatcher, Matcher>();
+            .AddSingleton<IMatcher, Matcher>();
 
         return services;
     }
