@@ -68,7 +68,7 @@ public static class AppCommand
             Required = false,
         };
 
-        Option<bool> dryRunOption = new("--dry-run", ["-n"])
+        Option<bool> dryRunOption = new("--dry-run", ["-dr"])
         {
             Description = "Scan and output possible changes, but don't rename anything.",
             Required = false,
