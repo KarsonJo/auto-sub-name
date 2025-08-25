@@ -18,12 +18,12 @@ public abstract class ClassFixtureSetup<T> : BasicSetup<T>, IClassFixture<T>, IA
 {
     public sealed override T Sut { get; protected set; } = default!;
 
-    public async ValueTask InitializeAsync()
+    public virtual async ValueTask InitializeAsync()
     {
         Sut = (await TestContext.Current.GetFixture<T>())!;
     }
 
-    public ValueTask DisposeAsync()
+    public virtual ValueTask DisposeAsync()
     {
         GC.SuppressFinalize(this);
         return ValueTask.CompletedTask;

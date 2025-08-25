@@ -75,4 +75,41 @@ public class SubtitleLanguageDetectorTests : ClassFixtureSetup<CoreAppSut>
         // Assert
         result.ShouldNotBeNull().Name.ShouldBe(expected, StringCompareShould.IgnoreCase);
     }
+
+    public class SetCustomLanguage : StandaloneSetup<CoreAppSut>
+    {
+        public override async ValueTask InitializeAsync()
+        {
+            await base.InitializeAsync();
+
+            Sut.Scoped<ISubtitleLanguageDetector>()
+                .Call(x => x.SetSupportedLanguageTags(["zh-Hans"]));
+        }
+
+        [Fact]
+        public void DetectLanguage_WhenIncluded_ShouldReturnCorrectly()
+        {
+            // Arrange
+            var path = Path.Combine(Sut.RootFileDirectory, "file-name.zh-hans.srt");
+
+            // Act
+            var result = Sut.Scoped<ISubtitleLanguageDetector>().Call(x => x.GetLanguage(path));
+
+            // Assert
+            result.ShouldNotBeNull().Name.ShouldBe("zh-Hans", StringCompareShould.IgnoreCase);
+        }
+
+        [Fact]
+        public void DetectLanguage_WhenNotIncluded_ShouldReturnNull()
+        {
+            // Arrange
+            var path = Path.Combine(Sut.RootFileDirectory, "file-name.en-us.srt");
+
+            // Act
+            var result = Sut.Scoped<ISubtitleLanguageDetector>().Call(x => x.GetLanguage(path));
+
+            // Assert
+            result.ShouldBeNull();
+        }
+    }
 }

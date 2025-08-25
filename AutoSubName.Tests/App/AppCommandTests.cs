@@ -194,6 +194,43 @@ public class AppCommandTests : StandaloneSetup<CoreAppSut>
         Sut.FileExists(video).ShouldBeTrue();
         Sut.FileExists(subtitle).ShouldBeTrue();
     }
+
+    [Fact]
+    public async Task InvokeCommand_WhenSetInvalidDetectLanguage_ShouldExitWithError()
+    {
+        // Act
+        List<string> args = ["--dir", Sut.RootFileDirectory, "--languages", "abcdefg"];
+        var result = await Sut.ExecuteAppCommandAsync(args);
+
+        // Assert
+        result.ExitCode.ShouldBe(1);
+    }
+
+    [Theory]
+    [InlineData("ca")]
+    [InlineData("ca|en,zh")]
+    public async Task InvokeCommand_WhenSetValidDetectLanguage_ShouldRenameToDetectedLanguage(
+        string languages
+    )
+    {
+        // Arrange
+        var episode = "S01E01";
+        var videoName = $"{NewGuid()} {episode}";
+        var video = await Sut.CreateVideoFileAsync(fileName: videoName);
+        var subtitle = await Sut.CreateSubtitleFileAsync(fileName: $"ca.{NewGuid()}.{episode}");
+
+        // Act
+        List<string> args = ["--dir", Sut.RootFileDirectory, "--languages", languages];
+        var result = await Sut.ExecuteAppCommandAsync(args);
+
+        // Assert
+        result.ExitCode.ShouldBe(0, result.Error);
+        result.Error.ShouldBeEmpty();
+
+        Sut.FileExists(video).ShouldBeTrue();
+        Sut.FileExists(subtitle).ShouldBeFalse();
+        Sut.FileExists($"{videoName}.ca.srt").ShouldBeTrue();
+    }
 }
 
 public static class AppCommandTestExtensions

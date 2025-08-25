@@ -1,8 +1,10 @@
 ﻿using System.CommandLine;
+using System.Globalization;
 using AutoSubName.RenameSubs.Features;
 using AutoSubName.RenameSubs.Services;
 using Mediator;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace AutoSubName.Commands;
 
@@ -72,12 +74,20 @@ public static class AppCommand
             Required = false,
         };
 
+        Option<List<string>> languagesOption = new("--languages", ["-l"])
+        {
+            DefaultValueFactory = _ => ISubtitleLanguageDetector.DefaultLangaugesTags,
+            Description = $"The subtitle languages to detect in ISO 639 or IETF BCP 47 format.",
+            Required = false,
+        };
+
         rootCommand.Options.Add(dirOption);
         rootCommand.Options.Add(recursiveOption);
         rootCommand.Options.Add(namingPatternOption);
         rootCommand.Options.Add(languageFormatOption);
         rootCommand.Options.Add(verboseOption);
         rootCommand.Options.Add(dryRunOption);
+        rootCommand.Options.Add(languagesOption);
 
         rootCommand.SetAction(
             async (parseResult, ct) =>
@@ -94,6 +104,29 @@ public static class AppCommand
                     host.LoggingSwitch.MinimumLevel = Serilog.Events.LogEventLevel.Verbose;
                 }
 
+                // Set languages
+                if (parseResult.GetValue(languagesOption) is List<string> languages)
+                {
+                    var srv = host.App.Services.GetRequiredService<ISubtitleLanguageDetector>();
+                    try
+                    {
+                        srv.SetSupportedLanguageTags(
+                            languages.Select(x => x.Split(['|', ','])).SelectMany(x => x).Distinct()
+                        );
+                    }
+                    catch (CultureNotFoundException ex)
+                    {
+                        var logger = host.App.Services.GetRequiredService<
+                            ILogger<ISubtitleLanguageDetector>
+                        >();
+                        logger.LogError(
+                            "The provided language {Language} is not supported.",
+                            ex.InvalidCultureName
+                        );
+                        return 1;
+                    }
+                }
+
                 // Send the command
                 using var scope = host.App.Services.CreateScope();
 
@@ -107,6 +140,8 @@ public static class AppCommand
                     DryRun = parseResult.GetValue(dryRunOption),
                 };
                 await mediator.Send(command, ct);
+
+                return 0;
             }
         );
 

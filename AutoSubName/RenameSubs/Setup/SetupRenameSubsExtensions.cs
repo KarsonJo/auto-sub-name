@@ -10,7 +10,7 @@ public static class SetupRenameSubsExtensions
     {
         services.AddScoped<IMediaFolderRepository, MediaFolderRepository>();
         services
-            .AddScoped<ISubtitleLanguageDetector, SubtitleLanguageDetector>()
+            .AddSingleton<ISubtitleLanguageDetector, SubtitleLanguageDetector>()
             .AddScoped<ISubtitleRenamer, SubtitleRenamer>()
             .AddScoped<IMatcher, Matcher>();
 
