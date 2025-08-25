@@ -15,6 +15,7 @@ public static class RenameSubtitles
             public bool Recursive { get; set; }
             public string? CustomNamingPattern { get; set; }
             public ISubtitleRenamer.LanguageFormat LanguageFormat { get; set; }
+            public bool DryRun { get; set; }
         }
 
         public class Handler(
@@ -56,7 +57,14 @@ public static class RenameSubtitles
                 }
                 else
                 {
-                    logger.LogInformation("Renamed {Renamed} subtitles.", renamed);
+                    if (request.DryRun)
+                    {
+                        logger.LogInformation("Would rename {Renamed} subtitles.", renamed);
+                    }
+                    else
+                    {
+                        logger.LogInformation("Renamed {Renamed} subtitles.", renamed);
+                    }
                 }
 
                 return default;
@@ -72,23 +80,45 @@ public static class RenameSubtitles
                         request.LanguageFormat
                     );
 
-                    if (logger.IsEnabled(LogLevel.Trace))
+                    if (request.DryRun)
                     {
                         foreach (var plan in plans)
                         {
-                            logger.LogTrace(
-                                "Will rename {OldName} to {NewName}.",
+                            logger.LogInformation(
+                                "Would rename {OldName} to {NewName}.",
                                 plan.OldName,
                                 plan.NewName
                             );
                         }
+
+                        renamed += folder.RenameSubs(plans);
+
+                        logger.LogInformation(
+                            "Would rename {Renamed} subtitles in {Path}.",
+                            renamed,
+                            path
+                        );
                     }
+                    else
+                    {
+                        if (logger.IsEnabled(LogLevel.Trace))
+                        {
+                            foreach (var plan in plans)
+                            {
+                                logger.LogTrace(
+                                    "Will rename {OldName} to {NewName}.",
+                                    plan.OldName,
+                                    plan.NewName
+                                );
+                            }
+                        }
 
-                    renamed += folder.RenameSubs(plans);
+                        renamed += folder.RenameSubs(plans);
 
-                    await repository.SaveChangesAsync(cancellationToken);
+                        await repository.SaveChangesAsync(cancellationToken);
 
-                    logger.LogDebug("Renamed {Renamed} subtitles in {Path}.", renamed, path);
+                        logger.LogDebug("Renamed {Renamed} subtitles in {Path}.", renamed, path);
+                    }
                 }
 
                 async Task Traverse(string path)

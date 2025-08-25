@@ -174,6 +174,26 @@ public class AppCommandTests : StandaloneSetup<CoreAppSut>
         Sut.FileExists(subtitle).ShouldBeFalse();
         Sut.FileExists($"{videoName}.zh.srt").ShouldBeTrue();
     }
+
+    [Fact]
+    public async Task InvokeCommand_WhenDryRun_ShouldNotRenameSubtitles()
+    {
+        // Arrange
+        var episode = "S01E01";
+        var video = await Sut.CreateVideoFileAsync(fileName: $"{NewGuid()} {episode}");
+        var subtitle = await Sut.CreateSubtitleFileAsync(fileName: $"{NewGuid()} {episode}");
+
+        // Act
+        List<string> args = ["--dir", Sut.RootFileDirectory, "--dry-run"];
+        var result = await Sut.ExecuteAppCommandAsync([.. args]);
+
+        // Assert
+        result.ExitCode.ShouldBe(0, result.Error);
+        result.Error.ShouldBeEmpty();
+
+        Sut.FileExists(video).ShouldBeTrue();
+        Sut.FileExists(subtitle).ShouldBeTrue();
+    }
 }
 
 public static class AppCommandTestExtensions

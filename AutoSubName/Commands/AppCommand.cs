@@ -66,11 +66,18 @@ public static class AppCommand
             Required = false,
         };
 
+        Option<bool> dryRunOption = new("--dry-run", ["-n"])
+        {
+            Description = "Scan and output possible changes, but don't rename anything.",
+            Required = false,
+        };
+
         rootCommand.Options.Add(dirOption);
         rootCommand.Options.Add(recursiveOption);
         rootCommand.Options.Add(namingPatternOption);
         rootCommand.Options.Add(languageFormatOption);
         rootCommand.Options.Add(verboseOption);
+        rootCommand.Options.Add(dryRunOption);
 
         rootCommand.SetAction(
             async (parseResult, ct) =>
@@ -97,6 +104,7 @@ public static class AppCommand
                     Recursive = parseResult.GetValue(recursiveOption),
                     CustomNamingPattern = parseResult.GetValue(namingPatternOption),
                     LanguageFormat = parseResult.GetValue(languageFormatOption),
+                    DryRun = parseResult.GetValue(dryRunOption),
                 };
                 await mediator.Send(command, ct);
             }
