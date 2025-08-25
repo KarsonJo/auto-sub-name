@@ -37,15 +37,22 @@ public partial class MediaFolder
         return new() { MediaFiles = mediaFiles };
     }
 
-    public void RenameSubs(IEnumerable<RenamePlan> renames)
+    /// <returns>Number of renamed files</returns>
+    public int RenameSubs(IEnumerable<RenamePlan> renames)
     {
+        int renamed = 0;
         var mediaFileDict = MediaFiles.ToDictionary(x => x.FileName, x => x);
 
         foreach (var (oldName, newName) in renames)
         {
             var mediaFile = mediaFileDict[oldName];
-            mediaFile.Rename(newName);
+            if (mediaFile.Rename(newName))
+            {
+                renamed++;
+            }
         }
+
+        return renamed;
     }
 }
 
@@ -73,15 +80,23 @@ public class MediaFile
         };
     }
 
-    public void Rename(string newName)
+    public bool Rename(string newName)
     {
         var ext = GetExtension(newName);
         if (ext != Extension)
         {
             throw new InvalidOperationException("Extension mismatch");
         }
+
+        if (FileName == newName)
+        {
+            return false;
+        }
+
         FullPath = Path.Combine(Path.GetDirectoryName(FullPath)!, newName);
         FileName = newName;
+
+        return true;
     }
 
     private static string GetExtension(string name)

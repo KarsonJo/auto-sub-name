@@ -28,6 +28,13 @@ public static class RenameSubtitles
                 CancellationToken cancellationToken
             )
             {
+                int renamed = 0;
+
+                logger.LogInformation(
+                    "Scanning subtitles in {FolderPath}. This may take a while...",
+                    request.FolderPath
+                );
+
                 if (request.Recursive)
                 {
                     await Traverse(request.FolderPath);
@@ -37,11 +44,26 @@ public static class RenameSubtitles
                     await RenameSubsInTopDirectory(request.FolderPath);
                 }
 
+                if (renamed == 0)
+                {
+                    logger.LogInformation("No subtitles were renamed.");
+                    if (!request.Recursive)
+                    {
+                        logger.LogInformation(
+                            "Note: Use --recursive or -r to scan subtitles in subdirectories."
+                        );
+                    }
+                }
+                else
+                {
+                    logger.LogInformation("Renamed {Renamed} subtitles.", renamed);
+                }
+
                 return default;
 
                 async Task RenameSubsInTopDirectory(string path)
                 {
-                    logger.LogTrace("Renaming subtitles in {Path}", path);
+                    logger.LogDebug("Renaming subtitles in top directory {Path}.", path);
                     var folder = await repository.GetAsync(path, cancellationToken);
 
                     var plans = subtitleRenamer.RenameSubs(
@@ -50,9 +72,23 @@ public static class RenameSubtitles
                         request.LanguageFormat
                     );
 
-                    folder.RenameSubs(plans);
+                    if (logger.IsEnabled(LogLevel.Trace))
+                    {
+                        foreach (var plan in plans)
+                        {
+                            logger.LogTrace(
+                                "Will rename {OldName} to {NewName}.",
+                                plan.OldName,
+                                plan.NewName
+                            );
+                        }
+                    }
+
+                    renamed += folder.RenameSubs(plans);
 
                     await repository.SaveChangesAsync(cancellationToken);
+
+                    logger.LogDebug("Renamed {Renamed} subtitles in {Path}.", renamed, path);
                 }
 
                 async Task Traverse(string path)
