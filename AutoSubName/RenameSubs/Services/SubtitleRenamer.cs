@@ -77,6 +77,11 @@ public partial class SubtitleRenamer(ISubtitleLanguageDetector languageDetector,
                 }
             );
 
+            if (newName == match.Subtitle.FileName)
+            {
+                continue;
+            }
+
             plans.Add(new(match.Subtitle.FileName, newName));
         }
 
